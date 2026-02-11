@@ -1,45 +1,82 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+const inter = Inter({ 
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-inter",
+  display: 'swap',
+  preload: true,
+  fallback: ['system-ui', 'arial'],
 });
 
 export const metadata: Metadata = {
-  title: "Omar Al-Bakri | FinTech & AI Sales Leader",
-  description: "FinTech & AI Sales Leader transforming complex technology into growth opportunities. Your trusted thought-partner in the digital revolution.",
-  keywords: ["FinTech", "AI", "Sales Leader", "Digital Transformation", "Binary Baron", "Omar Al-Bakri"],
-  authors: [{ name: "Omar Al-Bakri" }],
+  metadataBase: new URL('https://thegent.uk'),
+  title: {
+    default: "TheGent - AI-Powered Solutions for Modern Business",
+    template: "%s | TheGent"
+  },
+  description: "Transform your business with cutting-edge AI solutions. TheGent delivers custom AI integrations, automation, and strategic consulting to accelerate your digital transformation.",
+  keywords: ["AI solutions", "business automation", "AI consulting", "digital transformation", "machine learning", "AI integration", "enterprise AI", "AI strategy"],
+  authors: [{ name: "TheGent" }],
+  creator: "TheGent",
+  publisher: "TheGent",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   openGraph: {
-    title: "Omar Al-Bakri | FinTech & AI Sales Leader",
-    description: "FinTech & AI Sales Leader transforming complex technology into growth opportunities.",
     type: "website",
     locale: "en_US",
+    url: "https://thegent.uk",
+    siteName: "TheGent",
+    title: "TheGent - AI-Powered Solutions for Modern Business",
+    description: "Transform your business with cutting-edge AI solutions. Custom AI integrations, automation, and strategic consulting.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "TheGent - AI-Powered Solutions",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Omar Al-Bakri | FinTech & AI Sales Leader",
-    description: "FinTech & AI Sales Leader transforming complex technology into growth opportunities.",
+    title: "TheGent - AI-Powered Solutions for Modern Business",
+    description: "Transform your business with cutting-edge AI solutions. Custom AI integrations, automation, and strategic consulting.",
+    images: ["/og-image.png"],
+    creator: "@thegent",
   },
-  robots: "index, follow",
-};
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'your-google-verification-code',
+    yandex: 'your-yandex-verification-code',
+  },
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <head>
+        <link rel="preconnect" href="https://api.iconify.design" />
+        <link rel="dns-prefetch" href="https://api.iconify.design" />
+      </head>
+      <body className={inter.className} suppressHydrationWarning>
         {children}
       </body>
     </html>
