@@ -1,85 +1,140 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect, memo } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Icon } from "@iconify/react";
-const navItems = [
-  { name: "Home", href: "#home" },
-  { name: "About", href: "#about" },
-  { name: "Experience", href: "#experience" },
-  { name: "Portfolio", href: "#portfolio" },
-  { name: "Contact", href: "#contact" },
-];
-export default function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [activeSection, setActiveSection] = useState("home");
+
+const navLinks = [
+  { href: "/", label: "Home" },
+  { href: "/about", label: "About" },
+  { href: "/services", label: "Services" },
+  { href: "/contact", label: "Contact" },
+] as const;
+
+const Navbar = memo(function Navbar() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
+
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      setScrolled(window.scrollY > 20);
     };
-    window.addEventListener("scroll", handleScroll);
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-  const scrollToSection = (href: string) => {
-    const element = document.querySelector(href);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
-  };
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
+
+  const toggleMenu = () => setIsOpen((prev) => !prev);
+
   return (
-    <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? "bg-black/20 backdrop-blur-md border-b border-cyan-500/20"
+    <nav
+      className={`fixed w-full z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-gray-900/95 backdrop-blur-sm shadow-lg"
           : "bg-transparent"
       }`}
+      role="navigation"
+      aria-label="Main navigation"
     >
-      <div className="max-w-7xl mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          {}
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent"
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link
+            href="/"
+            className="flex items-center space-x-2 group"
+            aria-label="TheGent Home"
           >
-            thegent.uk
-          </motion.div>
-          {}
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-transform">
+              <span className="text-white font-bold text-xl">TG</span>
+            </div>
+            <span className="text-xl font-bold text-white hidden sm:block">
+              TheGent
+            </span>
+          </Link>
+
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <motion.button
-                key={item.name}
-                onClick={() => scrollToSection(item.href)}
-                whileHover={{ scale: 1.05 }}
-                className={`text-sm font-medium transition-colors duration-200 ${
-                  activeSection === item.href.slice(1)
-                    ? "text-cyan-400"
-                    : "text-neutral-300 hover:text-cyan-400"
-                }`}
-              >
-                {item.name}
-              </motion.button>
-            ))}
+            {navLinks.map(({ href, label }) => {
+              const isActive = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`text-sm font-medium transition-colors hover:text-blue-400 ${
+                    isActive ? "text-blue-400" : "text-gray-300"
+                  }`}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+            <Link
+              href="/contact"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors text-sm font-medium"
+            >
+              Get Started
+            </Link>
           </div>
-          {}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="hidden md:flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-6 py-2 rounded-full text-sm font-medium hover:shadow-lg hover:shadow-cyan-500/25 transition-all duration-300"
-            onClick={() => scrollToSection("#contact")}
+
+          {/* Mobile menu button */}
+          <button
+            onClick={toggleMenu}
+            className="md:hidden p-2 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition-colors"
+            aria-expanded={isOpen}
+            aria-controls="mobile-menu"
+            aria-label={isOpen ? "Close menu" : "Open menu"}
           >
-            <span>Let&apos;s Talk</span>
-            <Icon icon="solar:arrow-right-linear" className="w-4 h-4" />
-          </motion.button>
-          {}
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            className="md:hidden text-neutral-300 hover:text-cyan-400"
-          >
-            <Icon icon="solar:hamburger-menu-linear" className="w-6 h-6" />
-          </motion.button>
+            <Icon
+              icon={isOpen ? "mdi:close" : "mdi:menu"}
+              className="w-6 h-6"
+              aria-hidden="true"
+            />
+          </button>
         </div>
       </div>
-    </motion.nav>
+
+      {/* Mobile Navigation */}
+      {isOpen && (
+        <div
+          id="mobile-menu"
+          className="md:hidden bg-gray-900 border-t border-gray-800"
+        >
+          <div className="px-4 pt-2 pb-4 space-y-2">
+            {navLinks.map(({ href, label }) => {
+              const isActive = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`block px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                  }`}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+            <Link
+              href="/contact"
+              className="block w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium text-center mt-4"
+            >
+              Get Started
+            </Link>
+          </div>
+        </div>
+      )}
+    </nav>
   );
-}
+});
+
+export default Navbar;
