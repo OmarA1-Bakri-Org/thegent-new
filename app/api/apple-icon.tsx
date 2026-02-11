@@ -1,9 +1,12 @@
 import { ImageResponse } from 'next/og';
+
 export const size = {
   width: 64,
   height: 64,
 };
+
 export const contentType = 'image/png';
+
 export default function Icon() {
   return new ImageResponse(
     (
@@ -12,16 +15,20 @@ export default function Icon() {
           width: '100%',
           height: '100%',
           display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(to bottom, #1f2937, #111827)',
         }}
       >
-        <img
-          src="https:
+        <div
           style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'contain',
+            fontSize: 40,
+            fontWeight: 'bold',
+            color: '#ffffff',
           }}
-        />
+        >
+          TG
+        </div>
       </div>
     ),
     {
