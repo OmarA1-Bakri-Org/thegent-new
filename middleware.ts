@@ -10,7 +10,7 @@ export function middleware(request: NextRequest) {
 
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'unsafe-eval' 'unsafe-inline'`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: https:",
     "font-src 'self' https://fonts.gstatic.com data:",
@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
-    "require-trusted-types-for 'script'",
+
   ].join("; ");
 
   const requestHeaders = new Headers(request.headers);
