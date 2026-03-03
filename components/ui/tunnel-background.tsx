@@ -93,7 +93,9 @@ function createThreeForCanvas(
   const material = new THREE.ShaderMaterial({
     uniforms: {
       iTime: { value: 0 },
-      iResolution: { value: new THREE.Vector3(width, height, 1) },
+      iResolution: {
+        value: new THREE.Vector3(width * dpr, height * dpr, 1),
+      },
     },
     vertexShader,
     fragmentShader,
@@ -127,12 +129,12 @@ export default function TunnelBackground() {
 
   const animate = useCallback((time: number) => {
     if (!ctxRef.current) return;
+    time *= 0.001;
     if (pausedRef.current) {
       animRef.current = null;
       lastTimeRef.current = time;
       return;
     }
-    time *= 0.001;
     const delta = time - (lastTimeRef.current || time);
     lastTimeRef.current = time;
     ctxRef.current.material.uniforms.iTime.value += delta * 0.5;
@@ -164,13 +166,12 @@ export default function TunnelBackground() {
         rafResizeRef.current = false;
         const w = window.innerWidth;
         const h = window.innerHeight;
-        ctxRef.current!.renderer.setPixelRatio(
-          Math.min(window.devicePixelRatio || 1, 2)
-        );
+        const resizeDpr = Math.min(window.devicePixelRatio || 1, 2);
+        ctxRef.current!.renderer.setPixelRatio(resizeDpr);
         ctxRef.current!.renderer.setSize(w, h);
         (
           ctxRef.current!.material.uniforms.iResolution.value as THREE.Vector3
-        ).set(w, h, 1);
+        ).set(w * resizeDpr, h * resizeDpr, 1);
       });
     };
     window.addEventListener("resize", handleResize);
