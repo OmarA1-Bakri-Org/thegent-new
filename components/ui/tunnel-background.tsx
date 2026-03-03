@@ -162,14 +162,15 @@ export default function TunnelBackground() {
   const lastTimeRef = useRef<number>(0);
   const animRef = useRef<number | null>(null);
   const pausedRef = useRef<boolean>(false);
+  const offscreenRef = useRef<boolean>(false);
   const rafResizeRef = useRef<boolean>(false);
   const isMobile = useIsMobile();
 
   const animate = useCallback((time: number) => {
     if (!ctxRef.current) return;
-    animRef.current = requestAnimationFrame(animate);
-    if (pausedRef.current) {
+    if (pausedRef.current || offscreenRef.current) {
       lastTimeRef.current = time;
+      animRef.current = requestAnimationFrame(animate);
       return;
     }
     time *= 0.001;
@@ -177,6 +178,7 @@ export default function TunnelBackground() {
     lastTimeRef.current = time;
     ctxRef.current.material.uniforms.iTime.value += delta * 0.5;
     ctxRef.current.renderer.render(ctxRef.current.scene, ctxRef.current.camera);
+    animRef.current = requestAnimationFrame(animate);
   }, []);
 
   useEffect(() => {
@@ -188,6 +190,15 @@ export default function TunnelBackground() {
     const height = window.innerHeight;
     const ctx = createThreeForCanvas(canvas, width, height, layers);
     ctxRef.current = ctx;
+
+    /* Pause rendering when the canvas scrolls out of viewport */
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        offscreenRef.current = !entry.isIntersecting;
+      },
+      { threshold: 0 }
+    );
+    observer.observe(canvas);
 
     const handleResize = () => {
       if (!ctxRef.current) return;
@@ -216,6 +227,7 @@ export default function TunnelBackground() {
     animRef.current = requestAnimationFrame(animate);
 
     return () => {
+      observer.disconnect();
       if (animRef.current) cancelAnimationFrame(animRef.current);
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", handleVisibility);
