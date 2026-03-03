@@ -1,7 +1,34 @@
 "use client";
 
 import * as THREE from "three";
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
+
+/* ----------------------------- utilities ----------------------------- */
+
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth <= breakpoint : false
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const onChange = (e: MediaQueryListEvent | MediaQueryList) =>
+      setIsMobile("matches" in e ? e.matches : (e as any).matches);
+    setIsMobile(mq.matches);
+    try {
+      mq.addEventListener("change", onChange as any);
+      return () => mq.removeEventListener("change", onChange as any);
+    } catch {
+      mq.addListener(onChange as any);
+      return () => mq.removeListener(onChange as any);
+    }
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
+/* ----------------------------- shared shader ----------------------------- */
 
 const vertexShader = `void main(){ gl_Position = vec4(position, 1.0); }`;
 
@@ -68,6 +95,8 @@ void main(){
 }
 `;
 
+/* ----------------------------- three helpers ----------------------------- */
+
 type ThreeContext = {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
@@ -114,10 +143,12 @@ function disposeThree(ctx: ThreeContext) {
     ctx.mesh.geometry.dispose();
     ctx.material.dispose();
     ctx.renderer.dispose();
-  } catch {
+  } catch (e) {
     // ignore disposal errors
   }
 }
+
+/* ----------------------------- TunnelBackground (hero canvas) ----------------------------- */
 
 export default function TunnelBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -129,17 +160,16 @@ export default function TunnelBackground() {
 
   const animate = useCallback((time: number) => {
     if (!ctxRef.current) return;
-    time *= 0.001;
+    animRef.current = requestAnimationFrame(animate);
     if (pausedRef.current) {
-      animRef.current = null;
       lastTimeRef.current = time;
       return;
     }
+    time *= 0.001;
     const delta = time - (lastTimeRef.current || time);
     lastTimeRef.current = time;
     ctxRef.current.material.uniforms.iTime.value += delta * 0.5;
     ctxRef.current.renderer.render(ctxRef.current.scene, ctxRef.current.camera);
-    animRef.current = requestAnimationFrame(animate);
   }, []);
 
   useEffect(() => {
@@ -150,13 +180,6 @@ export default function TunnelBackground() {
     const height = window.innerHeight;
     const ctx = createThreeForCanvas(canvas, width, height);
     ctxRef.current = ctx;
-    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-    const startAnimationIfNeeded = () => {
-      if (!pausedRef.current && animRef.current === null) {
-        animRef.current = requestAnimationFrame(animate);
-      }
-    };
 
     const handleResize = () => {
       if (!ctxRef.current) return;
@@ -177,34 +200,17 @@ export default function TunnelBackground() {
     window.addEventListener("resize", handleResize);
 
     const handleVisibility = () => {
-      pausedRef.current = !!document.hidden || reducedMotionQuery.matches;
-      startAnimationIfNeeded();
+      pausedRef.current = !!document.hidden;
     };
-
-    const handleReducedMotionChange = (event: MediaQueryListEvent) => {
-      pausedRef.current = !!document.hidden || event.matches;
-      startAnimationIfNeeded();
-    };
-
-    try {
-      reducedMotionQuery.addEventListener("change", handleReducedMotionChange);
-    } catch {
-      reducedMotionQuery.addListener(handleReducedMotionChange);
-    }
-
     document.addEventListener("visibilitychange", handleVisibility);
     handleVisibility();
-    startAnimationIfNeeded();
+
+    animRef.current = requestAnimationFrame(animate);
 
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", handleVisibility);
-      try {
-        reducedMotionQuery.removeEventListener("change", handleReducedMotionChange);
-      } catch {
-        reducedMotionQuery.removeListener(handleReducedMotionChange);
-      }
       if (ctxRef.current) {
         disposeThree(ctxRef.current);
         ctxRef.current = null;
@@ -218,5 +224,205 @@ export default function TunnelBackground() {
       className="absolute inset-0 w-full h-full"
       aria-hidden="true"
     />
+  );
+}
+
+/* ----------------------------- TunnelShowcase (fullscreen) ----------------------------- */
+
+export function TunnelShowcase() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const ctxRef = useRef<ThreeContext | null>(null);
+  const lastTimeRef = useRef<number>(0);
+  const animRef = useRef<number | null>(null);
+  const pausedRef = useRef<boolean>(false);
+  const rafResizeRef = useRef<boolean>(false);
+  const isMobile = useIsMobile();
+
+  const animate = useCallback((time: number) => {
+    if (!ctxRef.current) return;
+    animRef.current = requestAnimationFrame(animate);
+    if (pausedRef.current) {
+      lastTimeRef.current = time;
+      return;
+    }
+    time *= 0.001;
+    const delta = time - (lastTimeRef.current || time);
+    lastTimeRef.current = time;
+    ctxRef.current.material.uniforms.iTime.value += delta * 0.5;
+    ctxRef.current.renderer.render(ctxRef.current.scene, ctxRef.current.camera);
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || typeof window === "undefined") return;
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const ctx = createThreeForCanvas(canvas, width, height);
+    ctxRef.current = ctx;
+
+    const handleResize = () => {
+      if (!ctxRef.current) return;
+      if (rafResizeRef.current) return;
+      rafResizeRef.current = true;
+      requestAnimationFrame(() => {
+        rafResizeRef.current = false;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const resizeDpr = Math.min(window.devicePixelRatio || 1, 2);
+        ctxRef.current!.renderer.setPixelRatio(resizeDpr);
+        ctxRef.current!.renderer.setSize(w, h);
+        (
+          ctxRef.current!.material.uniforms.iResolution.value as THREE.Vector3
+        ).set(w * resizeDpr, h * resizeDpr, 1);
+      });
+    };
+    window.addEventListener("resize", handleResize);
+
+    const handleVisibility = () => {
+      pausedRef.current = !!document.hidden;
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    handleVisibility();
+
+    animRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      if (ctxRef.current) {
+        disposeThree(ctxRef.current);
+        ctxRef.current = null;
+      }
+    };
+  }, [animate]);
+
+  return (
+    <div className="bg-black text-white min-h-screen overflow-hidden relative">
+      <canvas
+        ref={canvasRef}
+        className="fixed top-0 left-0 w-full h-full"
+        id="tunnel-canvas"
+      />
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4 text-center">
+        <div
+          className={`${isMobile ? "mb-4 space-y-2" : "mb-8 space-y-3 md:space-y-6"}`}
+        >
+          <div className="inline-block">
+            <h1
+              className={`${isMobile ? "text-3xl" : "text-6xl md:text-8xl"} font-black tracking-tighter bg-gradient-to-r from-white via-gray-200 to-white bg-clip-text text-transparent animate-pulse`}
+            >
+              TUNNEL
+            </h1>
+            <div
+              className={`h-1 w-full bg-gradient-to-r from-transparent via-white to-transparent ${isMobile ? "mt-2" : "mt-4"} animate-pulse`}
+            />
+          </div>
+          <p
+            className={`${isMobile ? "text-sm px-4 leading-relaxed" : "text-lg md:text-xl px-0 leading-relaxed"} text-gray-300 max-w-2xl font-light`}
+          >
+            Experience an infinite journey through space and time with this
+            mesmerizing
+            <span className="text-white font-medium"> Three.js </span>
+            powered tunnel effect that responds to your{" "}
+            {isMobile ? "touch" : "movement"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------- TunnelTheme (container-based) ----------------------------- */
+
+export function TunnelTheme() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const ctxRef = useRef<ThreeContext | null>(null);
+  const lastTimeRef = useRef<number>(0);
+  const animRef = useRef<number | null>(null);
+  const pausedRef = useRef<boolean>(false);
+  const rafResizeRef = useRef<boolean>(false);
+  const isMobile = useIsMobile();
+
+  const animate = useCallback((time: number) => {
+    if (!ctxRef.current) return;
+    animRef.current = requestAnimationFrame(animate);
+    if (pausedRef.current) {
+      lastTimeRef.current = time;
+      return;
+    }
+    time *= 0.001;
+    const delta = time - (lastTimeRef.current || time);
+    lastTimeRef.current = time;
+    ctxRef.current.material.uniforms.iTime.value += delta * 0.5;
+    ctxRef.current.renderer.render(ctxRef.current.scene, ctxRef.current.camera);
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || typeof window === "undefined") return;
+
+    const container = canvas.parentElement;
+    if (!container) return;
+
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    const ctx = createThreeForCanvas(canvas, width, height);
+    ctxRef.current = ctx;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (!ctxRef.current) return;
+      if (rafResizeRef.current) return;
+      rafResizeRef.current = true;
+      requestAnimationFrame(() => {
+        rafResizeRef.current = false;
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        const resizeDpr = Math.min(window.devicePixelRatio || 1, 2);
+        ctxRef.current!.renderer.setPixelRatio(resizeDpr);
+        ctxRef.current!.renderer.setSize(w, h);
+        (
+          ctxRef.current!.material.uniforms.iResolution.value as THREE.Vector3
+        ).set(w * resizeDpr, h * resizeDpr, 1);
+      });
+    });
+    resizeObserver.observe(container);
+
+    const handleVisibility = () => {
+      pausedRef.current = !!document.hidden;
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    handleVisibility();
+
+    animRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      resizeObserver.disconnect();
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      if (ctxRef.current) {
+        disposeThree(ctxRef.current);
+        ctxRef.current = null;
+      }
+    };
+  }, [animate]);
+
+  return (
+    <div className="relative w-full h-96 bg-black overflow-hidden rounded-lg">
+      <canvas ref={canvasRef} className="w-full h-full" />
+      <div className="absolute inset-0 flex items-center justify-center z-10">
+        <div className="text-center text-white">
+          <h2
+            className={`${isMobile ? "text-2xl" : "text-4xl"} font-bold mb-2 md:mb-4`}
+          >
+            TUNNEL
+          </h2>
+          <p className={`${isMobile ? "text-sm" : "text-lg"} opacity-80`}>
+            {isMobile ? "Touch to interact" : "Experience the infinite journey"}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
