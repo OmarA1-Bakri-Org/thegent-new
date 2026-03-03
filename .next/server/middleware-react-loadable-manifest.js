@@ -1,1 +1,0 @@
-self.__REACT_LOADABLE_MANIFEST='{"app\\\\components\\\\hero-section.tsx -> @/components/ui/tunnel-background":{"id":1166,"files":["static/chunks/b536a0f1.f27a09f364094a4f.js","static/chunks/bd904a5c.9c898ba26038d15a.js","static/chunks/166.17051d2570c71944.js"]}}';
