@@ -40,8 +40,8 @@ uniform vec3 iResolution;
 #define TUNNEL_LAYERS 96
 #define RING_POINTS 128
 #define POINT_SIZE 1.8
-#define POINT_COLOR_A vec3(1.0)
-#define POINT_COLOR_B vec3(0.7)
+#define POINT_COLOR_A vec3(0.769, 0.635, 0.396)
+#define POINT_COLOR_B vec3(0.55, 0.45, 0.28)
 #define SPEED 0.7
 
 float sq(float x){ return x*x; }
@@ -71,7 +71,7 @@ vec2 TunnelPath(float x){
 void main(){
   vec2 res = iResolution.xy / iResolution.y;
   vec2 uv = gl_FragCoord.xy / iResolution.y - res/2.0;
-  vec3 color = vec3(0.0);
+  vec3 color = vec3(0.039, 0.039, 0.039);
   float repAngle = TAU / float(RING_POINTS);
   float pointSize = POINT_SIZE / (2.0 * iResolution.y);
   float camZ = iTime * SPEED;
