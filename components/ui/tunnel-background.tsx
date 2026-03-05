@@ -163,6 +163,7 @@ export default function TunnelBackground() {
   const animRef = useRef<number | null>(null);
   const pausedRef = useRef<boolean>(false);
   const rafResizeRef = useRef<boolean>(false);
+  const isInViewRef = useRef<boolean>(false);
   const isMobile = useIsMobile();
 
   const startLoop = useCallback(() => {
@@ -200,6 +201,7 @@ export default function TunnelBackground() {
     /* Fully stop/start the render loop based on viewport visibility */
     const observer = new IntersectionObserver(
       ([entry]) => {
+        isInViewRef.current = entry.isIntersecting;
         if (entry.isIntersecting && !pausedRef.current) {
           startLoop();
         } else {
@@ -232,14 +234,12 @@ export default function TunnelBackground() {
       pausedRef.current = !!document.hidden;
       if (document.hidden) {
         stopLoop();
-      } else {
+      } else if (isInViewRef.current) {
         startLoop();
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
     handleVisibility();
-
-    startLoop();
 
     return () => {
       observer.disconnect();
