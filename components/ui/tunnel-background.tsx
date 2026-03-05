@@ -162,23 +162,29 @@ export default function TunnelBackground() {
   const lastTimeRef = useRef<number>(0);
   const animRef = useRef<number | null>(null);
   const pausedRef = useRef<boolean>(false);
-  const offscreenRef = useRef<boolean>(false);
   const rafResizeRef = useRef<boolean>(false);
   const isMobile = useIsMobile();
 
-  const animate = useCallback((time: number) => {
-    if (!ctxRef.current) return;
-    if (pausedRef.current || offscreenRef.current) {
+  const startLoop = useCallback(() => {
+    if (animRef.current !== null) return;
+    const tick = (time: number) => {
+      if (!ctxRef.current) return;
+      time *= 0.001;
+      const delta = time - (lastTimeRef.current || time);
       lastTimeRef.current = time;
-      animRef.current = requestAnimationFrame(animate);
-      return;
+      ctxRef.current.material.uniforms.iTime.value += delta * 0.5;
+      ctxRef.current.renderer.render(ctxRef.current.scene, ctxRef.current.camera);
+      animRef.current = requestAnimationFrame(tick);
+    };
+    lastTimeRef.current = 0;
+    animRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  const stopLoop = useCallback(() => {
+    if (animRef.current !== null) {
+      cancelAnimationFrame(animRef.current);
+      animRef.current = null;
     }
-    time *= 0.001;
-    const delta = time - (lastTimeRef.current || time);
-    lastTimeRef.current = time;
-    ctxRef.current.material.uniforms.iTime.value += delta * 0.5;
-    ctxRef.current.renderer.render(ctxRef.current.scene, ctxRef.current.camera);
-    animRef.current = requestAnimationFrame(animate);
   }, []);
 
   useEffect(() => {
@@ -191,10 +197,14 @@ export default function TunnelBackground() {
     const ctx = createThreeForCanvas(canvas, width, height, layers);
     ctxRef.current = ctx;
 
-    /* Pause rendering when the canvas scrolls out of viewport */
+    /* Fully stop/start the render loop based on viewport visibility */
     const observer = new IntersectionObserver(
       ([entry]) => {
-        offscreenRef.current = !entry.isIntersecting;
+        if (entry.isIntersecting && !pausedRef.current) {
+          startLoop();
+        } else {
+          stopLoop();
+        }
       },
       { threshold: 0 }
     );
@@ -220,15 +230,20 @@ export default function TunnelBackground() {
 
     const handleVisibility = () => {
       pausedRef.current = !!document.hidden;
+      if (document.hidden) {
+        stopLoop();
+      } else {
+        startLoop();
+      }
     };
     document.addEventListener("visibilitychange", handleVisibility);
     handleVisibility();
 
-    animRef.current = requestAnimationFrame(animate);
+    startLoop();
 
     return () => {
       observer.disconnect();
-      if (animRef.current) cancelAnimationFrame(animRef.current);
+      stopLoop();
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", handleVisibility);
       if (ctxRef.current) {
@@ -236,7 +251,7 @@ export default function TunnelBackground() {
         ctxRef.current = null;
       }
     };
-  }, [animate, isMobile]);
+  }, [startLoop, stopLoop, isMobile]);
 
   return (
     <canvas

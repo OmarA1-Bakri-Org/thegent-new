@@ -3,6 +3,18 @@ import React from "react";
 import { motion } from "framer-motion";
 import experiences from "@/app/data/experiences";
 
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.08 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+};
+
 export default function ExperienceSection() {
   return (
     <section id="experience" className="py-32 lg:py-40 bg-subtle">
@@ -29,14 +41,17 @@ export default function ExperienceSection() {
           </h2>
         </motion.div>
 
-        <div className="space-y-0">
+        <motion.div
+          className="space-y-0"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+        >
           {experiences.map((exp, index) => (
             <motion.article
               key={index}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              viewport={{ once: true }}
+              variants={itemVariants}
               className="grid lg:grid-cols-12 gap-8 py-12 border-t border-edge"
             >
               {/* Left: period + company */}
@@ -83,7 +98,7 @@ export default function ExperienceSection() {
               </div>
             </motion.article>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

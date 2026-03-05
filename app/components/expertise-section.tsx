@@ -42,6 +42,18 @@ const areas = [
   },
 ];
 
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.06 },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+};
+
 export default function ExpertiseSection() {
   return (
     <section id="expertise" className="py-32 lg:py-40">
@@ -76,14 +88,17 @@ export default function ExpertiseSection() {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-edge">
+        <motion.div
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-edge"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+        >
           {areas.map((area, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut", delay: index * 0.06 }}
-              viewport={{ once: true }}
+              variants={cardVariants}
               className="bg-base p-8 lg:p-10 group"
             >
               <Icon
@@ -107,7 +122,7 @@ export default function ExpertiseSection() {
               </p>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

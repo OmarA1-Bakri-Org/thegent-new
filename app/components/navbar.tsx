@@ -25,7 +25,7 @@ const Navbar = memo(function Navbar() {
 
   return (
     <nav
-      className={`fixed w-full z-50 transition-colors duration-200 ease-out ${
+      className={`fixed w-full z-50 transition-colors duration-200 ease-out will-change-transform ${
         scrolled
           ? "bg-base/95 backdrop-blur-sm border-b border-edge"
           : "bg-transparent"
